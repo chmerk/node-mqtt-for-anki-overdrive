@@ -23,3 +23,8 @@ properties
 https://github.com/gagle/node-properties
 https://www.npmjs.com/package/properties
 MIT: https://github.com/gagle/node-properties/blob/master/LICENSE
+
+request 
+https://github.com/request/request
+https://www.npmjs.com/package/request
+Apache: https://github.com/request/request/blob/master/LICENSE

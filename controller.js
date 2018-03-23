@@ -1,4 +1,16 @@
+
 //------------------------------------------------------------------------------
+// The original Version of this Software was developed by Niklas Heidloff (IBM),
+// and was published on Github under Apache License 2.0, see below.
+// (https://github.com/IBM-Cloud/node-mqtt-for-anki-overdrive)
+// 
+// It was further developed (altered and extended) by Christoph Merk 
+// (Bosch Software Innovations) for a Demo Showcase with the Systematic Field 
+// Data Explorer (SFDE) / Bosch IoT Data Manager and is further licensed 
+// under Apache License, Version 2.0
+// (https://www.bosch-si.com/de/iot-data/big-data/systematic-field-data-explorer.html)
+//------------------------------------------------------------------------------
+// Copyright Bosch Software Innovations GmbH, 2018
 // Copyright IBM Corp. 2016
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,39 +29,72 @@
 var config = require('./config-wrapper.js')();
 var async = require('async');
 var noble = require('noble');
-var mqtt = require('mqtt');
+//var mqtt = require('mqtt');
 var readline = require('readline');
+var request = require('request');
 
 var receivedMessages = require('./receivedMessages.js')();
 var prepareMessages = require('./prepareMessages.js')();
+var logger = require('./logger.js');
+var sfdeConfig = require('./sfde-config.json');
 
 var readCharacteristic;
 var writeCharacteristic;
 var car;
 var lane;
+var carFound = false;
+var messageCounter = 0;
+var lastTimestamp = 0;
+// var nukeSetSpeed = 0;
+// var nukeSetLane = 1;
 
-config.read(process.argv[2], function(carId, startlane, mqttClient) {
+var useSystem = sfdeConfig.useSystem;
+if (useSystem == "prod") {
+  var sfdeUrl = sfdeConfig.url;
+  var sfdeApiKey = sfdeConfig.apiKey;
+} else if (useSystem == "dev") {
+  var sfdeUrl = sfdeConfig.devUrl;
+  var sfdeApiKey = sfdeConfig.devApiKey;
+} 
+
+var sfdeContentType = sfdeConfig.contentType;
+var sfdeAuth = sfdeConfig.auth;
+
+// var loggerMode = 'extended';
+//logger.loggero();
+
+config.read(process.argv[2], function(carId, startlane, carName, mqttClient) {
+  //console.log("Carname: ", carName );
 
   if (!carId) {
-    console.log('Define carid in a properties file and pass in the name of the file as argv');
+    console.log('Define carID in a properties file and pass in the name of the file as argv');
     process.exit(0);
   }
   lane = startlane;
 
   noble.startScanning();
+  console.log("Scanning for cars!")
   setTimeout(function() {
-    noble.stopScanning();
-  }, 2000);
+    if (!carFound) {
+      noble.stopScanning();
+      console.log(carName, "not found!");
+      process.exit(0);
+      //process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+    }
+  }, 10000);  //10 seconds to connect to car
 
   noble.on('discover', function(peripheral) {
     if (peripheral.id === carId) {
       noble.stopScanning();
+      carFound = true;    //for check after search timeout (see above)
 
       var advertisement = peripheral.advertisement;
       var serviceUuids = JSON.stringify(peripheral.advertisement.serviceUuids);
       if(serviceUuids.indexOf("be15beef6186407e83810bd89c4d8df4") > -1) {
         console.log('Car discovered. ID: ' + peripheral.id); 
         car = peripheral;
+        setTerminalTitle(carName);
+        checkSFDE();
         setUp(car);
       }
     }
@@ -62,6 +107,8 @@ config.read(process.argv[2], function(carId, startlane, mqttClient) {
     });
 
     peripheral.connect(function(error) {
+      console.log('Trying to connect to car...');
+      
       peripheral.discoverServices([], function(error, services) {
         var service = services[0];
         
@@ -74,6 +121,7 @@ config.read(process.argv[2], function(carId, startlane, mqttClient) {
             },
             function(callback) {
               var characteristic = characteristics[characteristicIndex];
+
               async.series([
                 function(callback) {
                   if (characteristic.uuid == 'be15bee06186407e83810bd89c4d8df4') {
@@ -82,8 +130,40 @@ config.read(process.argv[2], function(carId, startlane, mqttClient) {
                     readCharacteristic.notify(true, function(err) {
                     });
 
-                    characteristic.on('read', function(data, isNotification) {
-                      receivedMessages.handle(data, mqttClient);
+                    characteristic.on('data', function(data, isNotification) {
+                      //This is the callback function called on data event (a.k.a. "incoming message")
+                      messageCounter++;
+                      receivedMessages.handle(data, mqttClient, messageCounter);
+
+                      var timestamp = Date.now();
+                      var payload = data.toString('hex');
+                      //console.log("Payload: ", payload);
+
+                      //  Experiment to periodically change driving behaviour of car automatically... Need to rework that!
+                      //  if (carName == 'groundshock' && timestamp - lastTimestamp > 1500) {
+                      //   if (nukeSetSpeed < 500) {
+                      //     nukeSetSpeed = nukeSetSpeed + 100;
+                      //   } else {
+                      //     nukeSetSpeed = nukeSetSpeed - 100;
+                      //     if (nukeSetLane < 4) {
+                      //       nukeSetLane = nukeSetLane + 1;
+                      //     }else {
+                      //       nukeSetLane = nukeSetLane - 1;
+                      //     }
+                      //     var laneCommandString = "c "+nukeSetLane;
+                      //   }
+                      //   var speedCommmandString = "s "+nukeSetSpeed;
+                      //   console.log("SPEEEEEEEEED: ", speedCommmandString);
+                      //   invokeCommand(speedCommmandString);
+                      //   //invokeCommand(laneCommandString);
+
+                      // }
+                      if (timestamp - lastTimestamp > 1000) {
+                        invokeCommand('bat');
+                        lastTimestamp = timestamp;
+                      }
+
+                      sendToSFDE(timestamp, carName, payload);
                     });
                   }
 
@@ -113,65 +193,11 @@ config.read(process.argv[2], function(carId, startlane, mqttClient) {
       });
     });
   }
-
-  mqttClient.on('error', function(err) {
-    console.error('MQTT client error ' + err);
-    mqttClient = null;
-  });
-  mqttClient.on('close', function() {
-    console.log('MQTT client closed');
-    mqttClient = null;
-  });
-
-  mqttClient.on('message', function(topic, message, packet) {
-    var msg = JSON.parse(message.toString());
-    //console.log('Message received from Bluemix');
-    
-    if (msg.d.action == '#s') {
-      var cmd = "s";
-      if (msg.d.speed) {
-        cmd = cmd + " " + msg.d.speed;
-        if (msg.d.accel) {
-          cmd = cmd + " " + msg.d.accel;
-        }
-      }
-      invokeCommand(cmd);
-    }
-    else if (msg.d.action == '#c') {
-      var cmd = "c";
-      if (msg.d.offset) {
-        cmd = cmd + " " + msg.d.offset;
-      }
-      invokeCommand(cmd);
-    }
-    else if (msg.d.action == '#q') {
-      var cmd = "q";
-      invokeCommand(cmd);
-    }
-    else if (msg.d.action == '#ping') {
-      var cmd = "ping";
-      invokeCommand(cmd);
-    }
-    else if (msg.d.action == '#ver') {
-      var cmd = "ver";
-      invokeCommand(cmd);
-    }
-    else if (msg.d.action == '#bat') {
-      var cmd = "bat";
-      invokeCommand(cmd);
-    }
-    else if (msg.d.action == '#l') {
-      var cmd = "l";
-      invokeCommand(cmd);
-    }
-    else if (msg.d.action == '#lp') {
-      var cmd = "lp";
-      invokeCommand(cmd);
-    }
-  });
 });
 
+
 function init(startlane) {
+  console.log("Starting init...");
   // turn on sdk and set offset
   var initMessage = new Buffer(4);
   initMessage.writeUInt8(0x03, 0);
@@ -195,7 +221,7 @@ function init(startlane) {
       writeCharacteristic.write(initMessage, false, function(err) {
         if (!err) {
           console.log('Initialization was successful');
-          console.log('Enter a command: help, s (speed), c (change lane), e (end/stop), l (lights), lp (lights pattern), o (offset), sdk, ping, bat, ver, q (quit)');
+          console.log('Enter a command: help, s (speed), c (change lane), e (end/stop), t (turn), l (lights), lp (lights pattern), o (offset), sdk, ping, bat, ver, q (quit)');
         }
         else {
           console.log('Initialization error');
@@ -232,6 +258,72 @@ var cli = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
+
+function assembleSfdeRequestOptions (reqMethod = 'GET', messageBody = '') {
+  if (reqMethod === 'GET' || reqMethod === 'POST'){
+    var options = { 
+      method: reqMethod, 
+      url: sfdeUrl,
+      headers:
+      { 
+        //'Authorization': sfdeAuth,
+        'x-im-apikey': sfdeApiKey,
+        'Content-Type': sfdeContentType
+      }
+    };
+  } else {
+    throw new Error('unknown request method for sfde request!'); 
+  }
+  if (reqMethod === 'POST') {
+    options.body = messageBody;
+  }
+
+  return options;
+}
+
+function checkSFDE () {
+
+  var options = assembleSfdeRequestOptions('GET');
+
+  request(options, function (error, response, body) {
+    console.log("\nChecking connection to SFDE...");
+    if (response && response.statusCode == 200) {
+      console.log("Connection to SFDE successful ( URL: ", response.request.href,")");
+      console.log("With message: \"", JSON.parse(response.body).message, "\", Status Code: ", response.statusCode, "\n");
+      
+    } else {
+      console.log("\x1b[31m"); //red
+      console.log("No Connection to SFDE possible! Please check Internetconnection, URL(Config File), Proxy-Setting etc.","\x1b[0m"); //color reset
+      console.log("Status Code: ", response.statusCode, " Response: ", response.body);
+    }
+    if (error) {
+      console.log("Fehler bei GET-Request");
+      //throw new Error(error);
+      //process.exit(0);
+    }
+  });
+}
+
+function sendToSFDE (timestamp, carName, payload) {
+  //console.log("Blaaaaa:", sfdeConfig.contentType)
+
+  var messageBody = JSON.stringify({timestamp: timestamp, carname: carName, payload: payload })
+  var options = assembleSfdeRequestOptions('POST', messageBody);
+
+  request(options, function (error, response, body) {
+    //dataSentCount++;
+    //console.log("Data sent: ", dataSentCount, body);
+    //if (error) throw new Error(error);
+    //console.log(body);
+  });
+}
+
+function setTerminalTitle(title)
+{
+  process.stdout.write(
+    String.fromCharCode(27) + "]0;" + title + String.fromCharCode(7)
+  );
+}
 
 cli.on('line', function (cmd) {
   if (cmd == "help") {
