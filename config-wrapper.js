@@ -43,26 +43,27 @@ function start(deviceId, apiKey, apiToken, mqttHost, mqttPort, carid, startlane,
 
 module.exports = function() {
   return {
-    "read" : function(propertiesFileName, callback) {
-      if (!propertiesFileName) {
-        propertiesFileName = 'config-gs.properties';
-        console.error('Default configuration file config-gs.properties is used');
+    "read" : function(configCarName, callback) {
+      if (!configCarName) {
+        configCarName = 'groundshock';
+        console.error('Default configuration file config-'+configCarName+'.properties is used');
       }
+      propertiesFileName = "config-" + configCarName + ".properties";
       properties.parse('./' + propertiesFileName, {path: true}, function(err, cfg) {
+        console.log("Looking for Config-File: ", propertiesFileName);
         if (err) {
           console.error('Error parsing the configuration file - see config-sample.properties for an example');
           process.exit(0);
 		    }
         if (!cfg.carid) {
-          console.error('Error parsing the configuration file - see config-sample.properties for an example');
+          console.error('Error parsing the configuration file: No car ID - see config-sample.properties for an example');
           process.exit(0);
         }
-
         if (cfg.deviceid) {
           var org = cfg.apikey.split('-')[1];
           start(cfg.deviceid, cfg.apikey, cfg.authtoken, org + '.messaging.internetofthings.ibmcloud.com', '1883', cfg.carid, cfg.startlane, callback);
         } else {
-          callback(cfg.carid, cfg.startlane, null);
+          callback(cfg.carid, cfg.startlane, configCarName, null);
         }
       });	
 	  }

@@ -14,5 +14,8 @@
 # limitations under the License.
 #------------------------------------------------------------------------------
 node_modules
-config-gs.properties
+.DS_Store
+config-groundshock.properties
+config-nuke.properties
 config-skull.properties
+config-thermo.properties

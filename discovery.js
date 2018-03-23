@@ -16,6 +16,9 @@
 
 var noble = require('noble');
 
+console.log('Starting to look for cars...');
+console.log('Only powered on cars, that are not connected can be found \n(normally indicated by \033[32m green light\033[0m)');
+
 noble.on('stateChange', function(state) {
   if (state === 'poweredOn') {
     noble.startScanning();
