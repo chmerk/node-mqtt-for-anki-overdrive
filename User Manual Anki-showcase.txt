@@ -1,0 +1,77 @@
+Prerequesites:
+- Anki Overdrive racetrack with desired number of cars
+- Computer with supported Bluetooth module, preferably Mac (so far no tests with other systems)
+- (open) Internet connection (LAN / WLAN) from the computer
+
+Description
+The program that connects to the cars and sends the messages to SFDE is a Node.js project.
+That means Node.js and npm must be installed on the computer (see below).
+The operation of the program (connecting and controlling the cars, etc.) is done via the command line (CLI, e.g. Terminal).
+
+In order to make this operation as easy as possible during the demo case, it is recommended to enable starting the terminal 
+via the context menu (see "Activate new terminal at the folder").
+(Alternatively, the path to the folder has to be specified in the terminal command (e.g., "node dev/node-anki-overdrive/discovery.js")
+or you have to change to the right folder first with "cd [path / folder name]")
+Also, it is convenient if the program package (folder) is located in an easy-to-reach folder (such as a desktop).
+
+Preparation / Setup:
+- Installing Node.js / npm on the computer / Mac
+  Both the installation via homebrew and the node.js installer were tested.
+  We recommend the installer:
+   - Download from https://nodejs.org/en/, Recommendation: LTS version, tested with 8.9.4
+   - Install (self-explanatory ;-)
+
+- Test if installation successful:
+    - Open Terminal / Shell
+     Input "node -v", Enter -> output should be the version of Node, e.g. "v8.9.4"
+     Input "npm -v", Enter -> output should be the version of npm, e.g. "5.6.0"
+
+- Enable "New Terminal at Folder" on Mac (optional):
+    - System Settings -> Keyboard -> Shortcuts
+    - Under "Services" search the section "Files and folders" and activate "New Terminal at Folder"
+
+- Install node modules (npm install):
+    If the package is shipped without the node modules (folder node_modules), you must first "npm install" in the folder. 
+    This will install the dependencies defined in package.json. This requires an internet connection.
+
+Before the first start, the car IDs (Bluetooth UUIDs) must be entered in the corresponding config files.
+These UUIDs usually stay constant per pairing (per car <-> machine), but may change under certain circumstances.
+If the computer, OS, Bluetooth module etc. are changed, the car IDs have to be updated in any case.
+
+The IDs have to be configured in the according config files, (z.B. config-nuke.porperties). 
+
+Setup of car config files (UUIDs of cars):
+     1. Turn off all cars first to make sure there are no other connections
+     (Attention: On the charging station, the cars are normally on!)
+     2. Turn on only the desired car and check if it pulsates green (otherwise recharge if necessary)
+     3. Call "node discovery.js":
+         - Open the terminal in the project folder: "node discovery.js". Exactly one Car ID should be found.
+     4. Open the config file of the car (for example, config-nuke.properties) and enter or check the dicovered UUID
+Repeat the process until all Car IDs have been found and configured.
+
+Setup SFDE-Connection:
+...
+
+Instructions Overdrive Showcase:
+
+1. Open the terminal at the project folder (via 'cd' or right-click -> 'New Terminal at Folder')
+2. Connect to the car: "node controller.js [carname]
+     Car names are: nuke, groundshock, thermo and skull
+     So for example: "node controller.js nuke"
+3. Switch on the car (if not already done). You have 10 seconds to connect the car.
+    After switching on, the LED first pulsates green. It turns blue when the car is connected.
+4. A few lines are printed in the Terminal that indicate that the car was found and the connection initialized
+        Carname:  nuke
+        Scanning for cars!
+        Car discovered. ID: f99298b080614c56a9ac974782074125
+        Trying to connect...
+        Starting init...
+        Initialization was successful
+        Enter a command: help, s (speed), c (change lane), e (end/stop), t (turn), l (lights), lp (lights pattern), o (offset), sdk, ping
+        Looking for Config-File:  config-nuke.properties, bat, ver, q (quit)
+
+If no car is found within 10 seconds, the normal terminal prompt should reappear and you can try again.
+
+Advanced:
+If no car is found, although it is turned on and not already connected otherwise (LED must light green),
+maybe the config must be adjusted. See "Setting up Auto config files (UUIDs of cars)".

@@ -1,0 +1,82 @@
+Voraussetzungen:
+- Anki Overdrive Rennbahn mit gewünschter Anzahl an Autos
+- Rechner mit unterstützem Bluetooth-Modul, optimalerweise Mac (bisher keine Tests mit anderen Systemen)
+- (offene) Netzwerkverbindung (LAN/WLAN) vom Rechner
+
+Beschreibung
+Das Programm welches die sich mit den Autos verbindet und die Messages an SFDE schickt ist ein Node.js Projekt. 
+D.h. Node.js und npm müssen auf dem Rechner installiert sein (siehe unten).
+Das Bedienen des Programms (Verbinden und Steuern der Autos etc.) erfolgt über die Kommandozeile (CLI, z.B. im Terminal).
+
+Um diese Bedienung während des Demo-Cases möglichst einfach zu machen, empfiehlt es sich, das Starten des Terminals über das Kontextmenü 
+zu ermöglichen (siehe "Neues Terminal beim Ordner" aktivieren).
+(Alternativ muss im Terminal der Befehl mit dem Pfad zum Ordner angegeben werden (z.B. "node Dev/node-anki-overdrive/discovery.js") 
+oder mit "cd [Pfad-/Ordnername]" erst zum entsprechenden Ordner gewechselt werden.)
+Außerdem ist es praktisch, wenn das Programm-Package (Ordner) in einem einfach zu erreichenden Ordner (z.B. Schreibtisch) liegt.
+
+Vorbereitung / Einrichtung:
+- Installieren von Node.js/npm auf dem Rechner/Mac 
+    Getestet wurden sowohl die Installation über Homebrew, als auch mit dem node.js Installer. 
+    Empfehlung Installer:
+    - Download von https://nodejs.org/en/, Empfehlung: LTS Version, gestetet mit 8.9.4
+    - Installieren (selbsterklärend ;-)
+
+- Testen ob Installation erfolgreich:
+    - Terminal/Shell öffnen
+    - Eingabe "node -v", Enter -> Ausgabe sollte die Version von Node sein, z.B. "v8.9.4"
+    - Eingabe "npm -v", Enter -> Ausgabe sollte die Version von npm sein, z.B. "5.6.0"
+
+- Auf Mac "Neues Terminal beim Ordner" aktivieren (optional):
+    - Systemeinstellungen -> Tastatur -> Kurzbefehle
+    - Unter "Dienste" die Rubrik "Dateien und Ordner" suchen und dort "Neues Terminal beim Ordner" aktivieren
+
+- Node Module installieren (npm install):
+    Falls das Package ohne die Node-Module (Ordner node_modules) ausgeliefert wird, muss zunächst "npm install" in 
+    dem Ordner ausgeführt werden. Dies installiert die in der package.json definierten Abhängigkeiten.
+    Hierfür wird eine Internetverbindung benötigt.
+
+Vor dem ersten Starten müssen die IDs der Autos (Bluetooth UUIDs) in die entsprechenden Config Files eingetragen werden.
+Diese UUIDs bleiben normalerweise pro Paarung (je Auto <-> Rechner) konstant, können sich aber unter bestimmten Umständen ändern.
+Wird der Rechner, OS, Bluetooth-Modul o.ä. geändert, müssen diese auf jeden Fall aktualisiert werden.
+
+Die IDs der Autos müssen in den jeweiligen config-Files angepasst werden, (z.B. config-nuke.porperties). 
+   
+Einrichtung der Auto config-Files (UUIDs der Autos):
+    1. Zunächst alle Autos ausschalten, um sicher zu gehen, dass keine anderen Verbindungen bestehen
+    (Achtung: Auf der Ladestation sind die Autos im Normalfall an!)
+    2. Nur das gewünschte Auto anschalten und prüfen ob diese grün pulsiert (ansonsten ggf. aufladen)
+    3. "node discovery.js" aufrufen:
+        - Terminal im Projektordner öffnen: "node discovery.js". Es sollte nun genau eine Car ID gefunden werden. 
+    4. Config-File des Autos (z.B. config-nuke.properties) öffnen und die gefundene UUID eintragen bzw. kontrollieren
+Vorgang wiederholen bis alle Car IDs gefunden und eingetragen wurden.
+
+Einrichtung SFDE-Connection:
+...
+
+
+Anleitung Overdrive Showcase:
+
+1. Terminal beim Projekt-Ordner öffnen (über 'cd' oder Rechtsklick->"New Terminal at Folder")
+2. Zum Auto verbinden: "node controller.js [carname]
+    Autonamen sind: nuke, groundshock, thermo und skull
+    Also z.B.: "node controller.js nuke"
+
+3. Auto anschalten (falls noch nicht geschehen). Hierfür hat man ca. 10 Sek
+    Nach dem anschalten, pulsiert die LED zunächst grün. Ist das Auto verbunden, wird die LED blau.
+4. Es erscheinen ein paar Zeilen im Terminal, dass das Auto gefunden wurde und die Verbindung initialisiert wird, z.B.:
+        Looking for Config-File:  config-nuke.properties
+        Carname:  nuke
+        Scanning for cars!
+        Car discovered. ID: f99298b080614c56a9ac974782074125
+        Trying to connect...
+        Starting init...
+        Initialization was successful
+        Enter a command: help, s (speed), c (change lane), e (end/stop), t (turn), l (lights), lp (lights pattern), o (offset), sdk, ping, bat, ver, q (quit)
+
+    Wird innerhalb von 10 Sekunden kein Auto gefunden, sollte der normale Terminal-Prompt wieder erscheinen und man kann einen neuen Versuch starten.       
+
+
+Erweitert:
+Wird kein Auto gefunden, obwohl dieses sicher angeschaltet und nicht schon anderweitig verbunden ist (LED muss grün leuchten), 
+muss evtl. die Config angepasst werden. Siehe "Einrichtung der Auto config-Files (UUIDs der Autos)".
+   
