@@ -26,6 +26,7 @@ module.exports = function() {
 		output = output + "  - offset, default: 0, valid: (-68) - (+68)\n";
 		output = output + "o [offset] - Set initial offset\n";
 		output = output + "  - offset, default: 0, valid: (-68) - (+68)\n";
+		output = output + "t - let vehicle make a u-turn\n";
 		output = output + "l - Change lights\n";
 		output = output + "lp - Change lights pattern\n";
 		output = output + "sdk [on/off] - Turn on/off SDK\n";
@@ -72,7 +73,7 @@ module.exports = function() {
 	    message.writeUInt8(0x24, 1);
 	    message.writeInt16LE(speed, 2); 
 	    message.writeInt16LE(accel, 4);                          
-	  }
+		}
 
 	  if (cmd == "e") { // end/set speed to zero
 	    message = new Buffer(7);
@@ -88,7 +89,11 @@ module.exports = function() {
 
 	    if (commandArray) {
 	      if (commandArray.length > 1) {	
-          	offset = commandArray[1];
+						offset = commandArray[1];
+						if (offset == 1) offset = 68;
+						if (offset == 2) offset = 23;
+						if (offset == 3) offset = -23;
+						if (offset == 4) offset = -68;
 	  	  }
 	  	}
 
@@ -98,7 +103,7 @@ module.exports = function() {
 		message.writeInt16LE(250, 2);
 	    message.writeInt16LE(1000, 4);    
 	    message.writeFloatLE(offset, 6);      
-	  }
+		}
 
 	  if (cmd == "o") { // set offset
 	  	// example: o -23
@@ -115,15 +120,23 @@ module.exports = function() {
 	    message.writeUInt8(0x05, 0);
 	    message.writeUInt8(0x2c, 1);
 	    message.writeFloatLE(-68.0, 2);    
+		}
+		
+		if (cmd == "t") { // turn (U-Turn)
+	    message = new Buffer(4);
+	    message.writeUInt8(0x03, 0);	//Msg-Size
+			message.writeUInt8(0x32, 1);	//Cmd-ID: 0x32 = turn
+			message.writeUInt8(0x03, 2);	//Turn command: 03: u-turn
+	    message.writeUInt8(0x00, 3);  //Trigger: 0 = immediate
 	  }
 
-      if (cmd == "l") { // change lights
+    if (cmd == "l") { // change lights
         // something happens but I don't understand the parameters yet
 	    message = new Buffer(3);
 	    message.writeUInt8(0x02, 0);
 	    message.writeUInt8(0x1d, 1);
 	    message.writeUInt8(140, 2);
-	    }
+	  }
 
 	  if (cmd == "lp") { // change lights pattern
 	    // something happens but I don't understand the parameters yet
@@ -169,7 +182,7 @@ module.exports = function() {
 	    message = new Buffer(2);
 	    message.writeUInt8(0x01, 0);
 	    message.writeUInt8(0x1a, 1);                    
-	  }
+		}
 
 	  if (cmd == "ver") { // request version
 	    message = new Buffer(2);

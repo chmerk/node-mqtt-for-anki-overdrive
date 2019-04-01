@@ -281,26 +281,30 @@ function assembleSfdeRequestOptions (reqMethod = 'GET', messageBody = '') {
   return options;
 }
 
-function checkSFDE () {
+function displaySfdeResponse(response, reqMethod = 'GET', error = null) {
+  if (response && response.statusCode == 200) {
+    console.log("Connection  to SFDE successful ( URL: ", response.request.href,")");
+    console.log("With message: \"", JSON.parse(response.body).message, "\", Status Code: ", response.statusCode, "\n");
+    
+  } else {
+    console.log("\x1b[31m"); //red
+    console.log("No Connection (", reqMethod,") to SFDE possible! Please check Internetconnection, URL(Config File), Proxy-Setting etc.","\x1b[0m"); //color reset
+    console.log("Status Code: ", response.statusCode, " Response: ", response.body);
+  }
+  if (error) {
+    console.log("Error trying ", reqMethod, "-Request");
+    //throw new Error(error);
+    //process.exit(0);
+  }
+}
 
-  var options = assembleSfdeRequestOptions('GET');
+function checkSFDE () {
+  var reqMethod = 'GET';
+  var options = assembleSfdeRequestOptions(reqMethod);
 
   request(options, function (error, response, body) {
     console.log("\nChecking connection to SFDE...");
-    if (response && response.statusCode == 200) {
-      console.log("Connection to SFDE successful ( URL: ", response.request.href,")");
-      console.log("With message: \"", JSON.parse(response.body).message, "\", Status Code: ", response.statusCode, "\n");
-      
-    } else {
-      console.log("\x1b[31m"); //red
-      console.log("No Connection to SFDE possible! Please check Internetconnection, URL(Config File), Proxy-Setting etc.","\x1b[0m"); //color reset
-      console.log("Status Code: ", response.statusCode, " Response: ", response.body);
-    }
-    if (error) {
-      console.log("Fehler bei GET-Request");
-      //throw new Error(error);
-      //process.exit(0);
-    }
+    displaySfdeResponse(response, reqMethod, error);
   });
 }
 
@@ -313,6 +317,7 @@ function sendToSFDE (timestamp, carName, payload) {
   request(options, function (error, response, body) {
     //dataSentCount++;
     //console.log("Data sent: ", dataSentCount, body);
+    displaySfdeResponse(response, reqMethod, error);
     //if (error) throw new Error(error);
     //console.log(body);
   });

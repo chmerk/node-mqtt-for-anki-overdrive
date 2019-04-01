@@ -1,3 +1,7 @@
+Anleitung Anki Overdrive - SFDE Demo Showcase
+Ersteller: Christoph Merk, Bosch Software Innovations
+Published under Apache License V2.0
+
 Voraussetzungen:
 - Anki Overdrive Rennbahn mit gewünschter Anzahl an Autos
 - Rechner mit unterstützem Bluetooth-Modul, optimalerweise Mac (bisher keine Tests mit anderen Systemen)
@@ -79,4 +83,3 @@ Anleitung Overdrive Showcase:
 Erweitert:
 Wird kein Auto gefunden, obwohl dieses sicher angeschaltet und nicht schon anderweitig verbunden ist (LED muss grün leuchten), 
 muss evtl. die Config angepasst werden. Siehe "Einrichtung der Auto config-Files (UUIDs der Autos)".
-   

@@ -1,8 +1,6 @@
 Node.js Controller and MQTT API for Anki Overdrive
 ================================================================================
 
-This the Fork for the SFDE-Project... Test :-)
-
 The [node-mqtt-for-anki-overdrive](https://github.com/IBM-Bluemix/node-mqtt-for-anki-overdrive) project contains two main components to control [Anki Overdrive](https://anki.com/) cars. 
 
 * Controller (Node.js application) running on MacBooks or notebooks to invoke commands and receive messages via CLI (command line interface) using the Anki Drive [Bluebooth Low Energy](http://developer.anki.com/drive-sdk/docs/programming-guide) interface.

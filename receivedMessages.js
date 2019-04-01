@@ -16,7 +16,7 @@
 
 module.exports = function() {
   return {
-    "handle" : function(data, mqttClient) {    
+    "handle" : function(data, mqttClient, messageCounter) {
 
 	    var messageId = data.readUInt8(1);
 	    var date = new Date();
@@ -26,7 +26,7 @@ module.exports = function() {
 	      var desc = 'Ping Response Received';
 	      console.log('Message: ' + messageId, data, desc);
 	      
-	      if (mqttClient) {
+	     /*  if (mqttClient) {
 	      	mqttClient.publish('iot-2/evt/' + messageId + '/fmt/json', JSON.stringify({
 	          "d" : {
 	            "description" : desc,
@@ -34,7 +34,7 @@ module.exports = function() {
 	          }
 	        }), function () {
 	        }); 
-		  }
+		  	} */
 	    }
 
 	    else if (messageId == '25') {
